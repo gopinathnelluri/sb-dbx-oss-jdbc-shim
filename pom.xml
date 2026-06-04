@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>databricks-noro-jdbc-shim</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <name>Databricks readOnly-tolerant JDBC shim</name>
+    <description>
+        Thin JDBC driver that delegates to the Databricks OSS JDBC driver and turns
+        Connection.setReadOnly(...) into a no-op, so connectors that force read-only
+        mode (e.g. Starburst/Trino generic-jdbc) can use the OSS driver.
+    </description>
+
+    <properties>
+        <!-- Pure-JDK artifact. Target 11 bytecode for broad runtime compatibility;
+             loads cleanly on every Java version Starburst/Trino ships on. -->
+        <maven.compiler.release>11</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <!-- Test only. No main dependencies on purpose: the shim references the
+             Databricks driver by class name via reflection (no compile-time pin),
+             and nothing links against Starburst. -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>
