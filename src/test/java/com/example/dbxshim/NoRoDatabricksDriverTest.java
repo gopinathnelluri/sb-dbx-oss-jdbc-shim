@@ -32,7 +32,7 @@ class NoRoDatabricksDriverTest
     @Test
     void acceptsOnlyTheShimPrefix()
     {
-        assertTrue(driver.acceptsURL("jdbc:databricks-noro://host:443/default"));
+        assertTrue(driver.acceptsURL("jdbc:databricksnoro://host:443/default"));
         assertFalse(driver.acceptsURL("jdbc:databricks://host:443/default"));
         assertFalse(driver.acceptsURL("jdbc:postgresql://host/db"));
         assertFalse(driver.acceptsURL(null));
@@ -42,7 +42,7 @@ class NoRoDatabricksDriverTest
     void connectRewritesThePrefixBeforeDelegating()
             throws Exception
     {
-        driver.connect("jdbc:databricks-noro://host:443/default;httpPath=/x", new Properties());
+        driver.connect("jdbc:databricksnoro://host:443/default;httpPath=/x", new Properties());
         assertEquals("jdbc:databricks://host:443/default;httpPath=/x", FakeDatabricksDriver.lastUrl);
     }
 
@@ -50,7 +50,7 @@ class NoRoDatabricksDriverTest
     void setReadOnlyIsSwallowedInsteadOfThrowing()
             throws Exception
     {
-        Connection connection = driver.connect("jdbc:databricks-noro://host/default", new Properties());
+        Connection connection = driver.connect("jdbc:databricksnoro://host/default", new Properties());
         // The fake (like the real OSS driver) would throw on setReadOnly; the shim must absorb it.
         assertDoesNotThrow(() -> connection.setReadOnly(true));
         assertDoesNotThrow(() -> connection.setReadOnly(false));
@@ -60,7 +60,7 @@ class NoRoDatabricksDriverTest
     void otherCallsAreDelegatedUnchanged()
             throws Exception
     {
-        Connection connection = driver.connect("jdbc:databricks-noro://host/default", new Properties());
+        Connection connection = driver.connect("jdbc:databricksnoro://host/default", new Properties());
         assertEquals("fake-catalog", connection.getCatalog());
         assertFalse(connection.isReadOnly());
         assertFalse(connection.isClosed());

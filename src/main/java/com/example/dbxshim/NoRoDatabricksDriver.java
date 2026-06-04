@@ -41,15 +41,15 @@ import java.util.logging.Logger;
  * <pre>
  *   connector.name=generic-jdbc
  *   driver-class=com.example.dbxshim.NoRoDatabricksDriver
- *   connection-url=jdbc:databricks-noro://&lt;host&gt;:443/default;...
+ *   connection-url=jdbc:databricksnoro://&lt;host&gt;:443/default;...
  * </pre>
- * The {@code jdbc:databricks-noro:} prefix is rewritten to {@code jdbc:databricks:}
+ * The {@code jdbc:databricksnoro:} prefix is rewritten to {@code jdbc:databricks:}
  * before delegating, so every Databricks URL property works unchanged.
  */
 public final class NoRoDatabricksDriver implements Driver {
 
     /** URL scheme this driver answers to. */
-    public static final String SHIM_PREFIX = "jdbc:databricks-noro:";
+    public static final String SHIM_PREFIX = "jdbc:databricksnoro:";
 
     /** Real scheme of the delegate Databricks driver. */
     private static final String DELEGATE_PREFIX = "jdbc:databricks:";

@@ -36,7 +36,7 @@ Java 11 for broad runtime compatibility).
 
 ```bash
 mvn clean package
-# -> target/databricks-noro-jdbc-shim-1.0.0.jar
+# -> target/databricksnoro-jdbc-shim-1.0.0.jar
 ```
 
 ## Deploy to Starburst
@@ -44,7 +44,7 @@ mvn clean package
 Put **both** jars on the `generic-jdbc` plugin classpath of every node:
 
 ```
-<starburst>/plugin/generic-jdbc/databricks-noro-jdbc-shim-1.0.0.jar
+<starburst>/plugin/generic-jdbc/databricksnoro-jdbc-shim-1.0.0.jar
 <starburst>/plugin/generic-jdbc/databricks-jdbc-<version>.jar   # the OSS driver
 ```
 
@@ -53,9 +53,9 @@ Catalog (`etc/catalog/databricks.properties`):
 ```properties
 connector.name=generic-jdbc
 driver-class=com.example.dbxshim.NoRoDatabricksDriver
-# Note the jdbc:databricks-noro: scheme; it is rewritten to jdbc:databricks:
+# Note the jdbc:databricksnoro: scheme; it is rewritten to jdbc:databricks:
 # before delegating, so every Databricks URL property works unchanged.
-connection-url=jdbc:databricks-noro://<host>:443/default;transportMode=http;ssl=1;AuthMech=11;Auth_Flow=1;OAuth2ClientId=${ENV:DBX_SP_CLIENT_ID};OAuth2Secret=${ENV:DBX_SP_SECRET};httpPath=/sql/1.0/warehouses/<id>
+connection-url=jdbc:databricksnoro://<host>:443/default;transportMode=http;ssl=1;AuthMech=11;Auth_Flow=1;OAuth2ClientId=${ENV:DBX_SP_CLIENT_ID};OAuth2Secret=${ENV:DBX_SP_SECRET};httpPath=/sql/1.0/warehouses/<id>
 ```
 
 Restart the coordinator and workers, then verify:
@@ -67,7 +67,7 @@ SHOW SCHEMAS FROM databricks;
 ## How it works
 
 ```
-Starburst --connect(jdbc:databricks-noro://...)--> NoRoDatabricksDriver
+Starburst --connect(jdbc:databricksnoro://...)--> NoRoDatabricksDriver
                                                         |
                           rewrite prefix -> jdbc:databricks://...
                                                         |

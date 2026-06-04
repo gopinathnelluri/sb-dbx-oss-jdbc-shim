@@ -17,9 +17,10 @@
     </description>
 
     <properties>
-        <!-- Pure-JDK artifact. Target 11 bytecode for broad runtime compatibility;
-             loads cleanly on every Java version Starburst/Trino ships on. -->
-        <maven.compiler.release>11</maven.compiler.release>
+        <!-- Pure-JDK artifact. Bytecode target must be <= the JVM Starburst runs on.
+             21 is safe on recent Starburst/Trino (Java 22+); drop to 11/17 if your
+             cluster runs an older JVM. -->
+        <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
