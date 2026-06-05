@@ -72,4 +72,27 @@ class NoRoDatabricksDriverTest
     {
         assertNull(driver.connect("jdbc:databricks://host/default", new Properties()));
     }
+
+    @Test
+    void identifierQuoteIsNotOverriddenByDefault()
+            throws Exception
+    {
+        // Property unset -> the real (fake) driver's quote string passes through unchanged.
+        Connection connection = driver.connect("jdbc:databricksnoro://host/default", new Properties());
+        assertEquals("\"", connection.getMetaData().getIdentifierQuoteString());
+    }
+
+    @Test
+    void identifierQuoteIsOverriddenWhenPropertySet()
+            throws Exception
+    {
+        System.setProperty(NoRoDatabricksDriver.IDENTIFIER_QUOTE_PROPERTY, "`");
+        try {
+            Connection connection = driver.connect("jdbc:databricksnoro://host/default", new Properties());
+            assertEquals("`", connection.getMetaData().getIdentifierQuoteString());
+        }
+        finally {
+            System.clearProperty(NoRoDatabricksDriver.IDENTIFIER_QUOTE_PROPERTY);
+        }
+    }
 }

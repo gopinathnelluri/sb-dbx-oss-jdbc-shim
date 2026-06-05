@@ -78,6 +78,29 @@ Starburst --connect(jdbc:databricksnoro://...)--> NoRoDatabricksDriver
    setReadOnly(...)  --> swallowed (no-op)              other calls --> delegated unchanged
 ```
 
+## Optional: force backtick identifier quoting (double-quote workaround)
+
+Databricks treats double quotes as **string literals**, not identifiers, by default.
+Trino/Starburst `generic-jdbc` builds its identifier quoting from the driver's
+`DatabaseMetaData.getIdentifierQuoteString()`. If that surfaces a double quote,
+pushed-down SQL like `SELECT "col" FROM "schema"."table"` breaks on Databricks.
+
+The shim can override that metadata call to return a backtick, so Trino emits
+Databricks-native ``SELECT `col` FROM `schema`.`table` `` instead. It is **off by
+default**; enable it only if you actually hit the double-quote problem:
+
+```
+# JVM flag on every Starburst node (e.g. in jvm.config or JAVA_TOOL_OPTIONS):
+-Ddbxshim.identifierQuote=`
+```
+
+Caveats:
+- This works **only if** the generic-jdbc connector derives its quoting from
+  `getIdentifierQuoteString()` (verify by testing — emit a multi-column SELECT and
+  confirm correct results). If the connector hardcodes a quote character, this has
+  no effect and you would need the native Databricks connector instead.
+- It does not touch SQL text; it only changes the advertised quote character.
+
 ## Scope / caveats
 
 - Fixes **only** the client-side `setReadOnly` rejection. It does **not** change

@@ -5,6 +5,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
@@ -59,6 +60,15 @@ public final class NoRoDatabricksDriver implements Driver {
 
     /** Default delegate driver class (both the OSS and Simba drivers use this name). */
     public static final String DEFAULT_DELEGATE_CLASS = "com.databricks.client.jdbc.Driver";
+
+    /**
+     * Optional. If set, {@link DatabaseMetaData#getIdentifierQuoteString()} is overridden to
+     * return this value (e.g. a backtick {@code `}). This makes connectors that derive their
+     * identifier quoting from driver metadata (such as Trino/Starburst generic-jdbc) emit
+     * Databricks-native backtick-quoted SQL instead of double quotes. Unset = no override
+     * (default), so the readOnly fix is unaffected.
+     */
+    public static final String IDENTIFIER_QUOTE_PROPERTY = "dbxshim.identifierQuote";
 
     static {
         try {
@@ -187,16 +197,35 @@ public final class NoRoDatabricksDriver implements Driver {
         return (Connection) Proxy.newProxyInstance(
                 NoRoDatabricksDriver.class.getClassLoader(),
                 new Class<?>[] {Connection.class},
-                new ReadOnlyNoOpHandler(real));
+                new ConnectionHandler(real));
     }
 
-    /** Forwards every {@link Connection} call to the real connection except {@code setReadOnly}. */
-    private static final class ReadOnlyNoOpHandler
+    /** Invokes {@code method} on {@code target}, unwrapping reflection wrappers so callers see real SQLExceptions. */
+    private static Object forward(Object target, Method method, Object[] args)
+            throws Throwable
+    {
+        try {
+            return method.invoke(target, args);
+        }
+        catch (InvocationTargetException e) {
+            throw e.getCause();
+        }
+    }
+
+    /**
+     * Forwards every {@link Connection} call to the real connection except:
+     * <ul>
+     *   <li>{@code setReadOnly} — swallowed (the OSS driver throws on it);</li>
+     *   <li>{@code getMetaData} — wrapped to optionally override the identifier quote string,
+     *       when {@link #IDENTIFIER_QUOTE_PROPERTY} is set.</li>
+     * </ul>
+     */
+    private static final class ConnectionHandler
             implements InvocationHandler
     {
         private final Connection target;
 
-        ReadOnlyNoOpHandler(Connection target)
+        ConnectionHandler(Connection target)
         {
             this.target = target;
         }
@@ -205,18 +234,28 @@ public final class NoRoDatabricksDriver implements Driver {
         public Object invoke(Object proxy, Method method, Object[] args)
                 throws Throwable
         {
-            // The OSS driver throws on setReadOnly(...); swallow the call so the
-            // connection succeeds. setReadOnly returns void, so null is correct.
-            if ("setReadOnly".equals(method.getName())) {
-                return null;
-            }
-            try {
-                return method.invoke(target, args);
-            }
-            catch (InvocationTargetException e) {
-                // Unwrap so callers see the real SQLException, not a wrapper.
-                throw e.getCause();
+            switch (method.getName()) {
+                case "setReadOnly":
+                    // The OSS driver throws on setReadOnly(...); swallow it (returns void).
+                    return null;
+                case "getMetaData": {
+                    String quote = System.getProperty(IDENTIFIER_QUOTE_PROPERTY);
+                    DatabaseMetaData metaData = (DatabaseMetaData) forward(target, method, args);
+                    return (quote == null || metaData == null) ? metaData : wrapMetaData(metaData, quote);
+                }
+                default:
+                    return forward(target, method, args);
             }
         }
+    }
+
+    private static DatabaseMetaData wrapMetaData(DatabaseMetaData real, String identifierQuote)
+    {
+        return (DatabaseMetaData) Proxy.newProxyInstance(
+                NoRoDatabricksDriver.class.getClassLoader(),
+                new Class<?>[] {DatabaseMetaData.class},
+                (proxy, method, args) -> "getIdentifierQuoteString".equals(method.getName())
+                        ? identifierQuote
+                        : forward(real, method, args));
     }
 }

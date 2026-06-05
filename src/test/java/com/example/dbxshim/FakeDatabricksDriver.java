@@ -45,6 +45,8 @@ public final class FakeDatabricksDriver
                             return Boolean.FALSE;
                         case "close":
                             return null;
+                        case "getMetaData":
+                            return fakeMetaData();
                         default:
                             return defaultValue(method.getReturnType());
                     }
@@ -85,6 +87,20 @@ public final class FakeDatabricksDriver
     public Logger getParentLogger()
     {
         return Logger.getGlobal();
+    }
+
+    /** Mimics a driver whose default identifier quote is a double quote (the problematic case). */
+    private static java.sql.DatabaseMetaData fakeMetaData()
+    {
+        return (java.sql.DatabaseMetaData) Proxy.newProxyInstance(
+                FakeDatabricksDriver.class.getClassLoader(),
+                new Class<?>[] {java.sql.DatabaseMetaData.class},
+                (proxy, method, args) -> {
+                    if ("getIdentifierQuoteString".equals(method.getName())) {
+                        return "\"";
+                    }
+                    return defaultValue(method.getReturnType());
+                });
     }
 
     private static Object defaultValue(Class<?> type)
